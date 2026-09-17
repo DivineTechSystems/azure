@@ -1,38 +1,69 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2019-08-01/subscriptionDeploymentTemplate.json#",
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
+  "metadata": {
+    "description": "Grants Divine Technology Solutions delegated access to this Azure subscription via Azure Lighthouse. Deployed by the customer, at subscription scope, by a user holding Owner. The customer can revoke it at any time from Service providers in the Azure portal.",
+    "_generator": "DTSChurch/dts-infra onboarding/lighthouse"
+  },
   "parameters": {
     "mspOfferName": {
       "type": "string",
+      "defaultValue": "DTS Managed Services",
       "metadata": {
-        "description": "Specify a unique name for your offer"
-      },
-      "defaultValue": "Grant DTS Permission"
+        "description": "Name shown to the customer under Service providers. Changing this after deployment creates a SECOND delegation rather than updating the first, because the registration name is derived from it."
+      }
     },
     "mspOfferDescription": {
       "type": "string",
+      "defaultValue": "Divine Technology Solutions — managed hosting, monitoring and support for Rock RMS.",
       "metadata": {
-        "description": "Name of the Managed Service Provider offering"
-      },
-      "defaultValue": ""
+        "description": "Description shown to the customer alongside the offer."
+      }
+    },
+    "managedByTenantId": {
+      "type": "string",
+      "defaultValue": "67a092bc-a547-4544-9e62-62a94d7be9ce",
+      "metadata": {
+        "description": "DTS tenant (DTSChurch.com). Do not change."
+      }
+    },
+    "dtsTeamPrincipalId": {
+      "type": "string",
+      "defaultValue": "96530f14-1e8b-4a8c-9614-04d39c6ec91d",
+      "metadata": {
+        "description": "The DTS Team Entra group. Verified 2026-08-02 as the single principal behind all 81 DTS authorizations across the estate — the labels 'DTS Team' and 'DTS Church Team' are display names on this same group."
+      }
     }
   },
   "variables": {
     "mspRegistrationName": "[guid(parameters('mspOfferName'))]",
     "mspAssignmentName": "[guid(parameters('mspOfferName'))]",
-    "managedByTenantId": "67a092bc-a547-4544-9e62-62a94d7be9ce",
+
+    "roleContributor": "b24988ac-6180-42a0-ab88-20f7382dd24c",
+    "roleUserAccessAdministrator": "18d7d88d-d35e-4fb5-a5c3-7773c20a72d9",
+    "roleReader": "acdd72a7-3385-48ef-bd42-f606fba81ae7",
+    "roleMonitoringContributor": "749f88d5-cbae-40b8-bcfc-e573ddc772fa",
+    "roleStorageBlobDataContributor": "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
+    "roleKeyVaultSecretsUser": "4633458b-17de-408a-b874-0445c86b69e6",
+    "roleStorageAccountContributor": "17d1049b-9a84-46fb-8f53-869881c3d3ab",
+
     "authorizations": [
       {
-        "principalId": "96530f14-1e8b-4a8c-9614-04d39c6ec91d",
-        "roleDefinitionId": "b24988ac-6180-42a0-ab88-20f7382dd24c",
-        "principalIdDisplayName": "DTS Team"
+        "principalId": "[parameters('dtsTeamPrincipalId')]",
+        "principalIdDisplayName": "DTS Team",
+        "roleDefinitionId": "[variables('roleContributor')]"
       },
       {
-        "principalId": "96530f14-1e8b-4a8c-9614-04d39c6ec91d",
-        "roleDefinitionId": "18d7d88d-d35e-4fb5-a5c3-7773c20a72d9",
+        "principalId": "[parameters('dtsTeamPrincipalId')]",
         "principalIdDisplayName": "DTS Team (Limited UAA)",
+        "roleDefinitionId": "[variables('roleUserAccessAdministrator')]",
         "delegatedRoleDefinitionIds": [
-          "b24988ac-6180-42a0-ab88-20f7382dd24c"
+          "[variables('roleContributor')]",
+          "[variables('roleReader')]",
+          "[variables('roleMonitoringContributor')]",
+          "[variables('roleStorageBlobDataContributor')]",
+          "[variables('roleKeyVaultSecretsUser')]",
+          "[variables('roleStorageAccountContributor')]"
         ]
       }
     ]
@@ -45,7 +76,7 @@
       "properties": {
         "registrationDefinitionName": "[parameters('mspOfferName')]",
         "description": "[parameters('mspOfferDescription')]",
-        "managedByTenantId": "[variables('managedByTenantId')]",
+        "managedByTenantId": "[parameters('managedByTenantId')]",
         "authorizations": "[variables('authorizations')]"
       }
     },
@@ -64,7 +95,7 @@
   "outputs": {
     "mspOfferName": {
       "type": "string",
-      "value": "[concat('Managed by', ' ', parameters('mspOfferName'))]"
+      "value": "[concat('Azure Lighthouse offer: ', parameters('mspOfferName'))]"
     },
     "authorizations": {
       "type": "array",
